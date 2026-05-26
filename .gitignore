@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# venv / uv
+.venv/
+.python-version
+
+# Конфигурация окружения
+.env
+.env.local
+
+# Логи
+logs/
+*.log
+
+# Локальные данные приложения
+.local/
+
+# Дампы БД
+*.sql.gz
+backups/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

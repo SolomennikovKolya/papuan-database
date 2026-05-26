@@ -1,0 +1,37 @@
+# Локальный стенд: PostgreSQL + Adminer.
+# Adminer открывается на http://localhost:8080 — для просмотра данных без отдельного клиента.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tourist_club_pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-tourist_club}
+      POSTGRES_USER: ${DB_USER:-tourist_app}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me_please}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tourist_app} -d ${DB_NAME:-tourist_club}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  adminer:
+    image: adminer:4
+    container_name: tourist_club_adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: dracula
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pg_data:

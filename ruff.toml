@@ -1,0 +1,54 @@
+# Конфигурация Ruff: линтер + форматтер.
+# Правила выбраны под соглашения проекта (см. docs/specification.md §6.3).
+
+target-version = "py312"
+line-length = 100
+extend-exclude = ["migrations/versions", ".venv", "build", "dist"]
+
+[lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific
+    "N",    # pep8-naming
+    "D",    # pydocstyle (docstrings)
+    "FA",   # future-annotations
+    "TCH",  # type-checking
+    "PL",   # pylint subset
+]
+ignore = [
+    "D203",  # 1 blank line before class docstring (конфликт с D211)
+    "D213",  # multi-line summary on second line (конфликт с D212)
+    "D100",  # missing module docstring — мы требуем своими средствами
+    "D104",  # missing __init__ docstring — есть, но pydocstyle капризничает
+    "PLR0913",  # too many arguments
+    # Проект ведётся на русском — кириллица в строках/docstring-ах ожидаема,
+    # «похожие на латиницу» буквы — это просто русский текст.
+    "RUF001",  # ambiguous unicode in strings
+    "RUF002",  # ambiguous unicode in docstrings
+    "RUF003",  # ambiguous unicode in comments
+    # Спецификация фиксирует имена доменных исключений без суффикса Error
+    # (PermissionDenied, NotFound) — это часть API сервисного слоя.
+    "N818",
+]
+
+[lint.per-file-ignores]
+"tests/**" = ["D", "PLR2004"]
+"app/__main__.py" = ["D"]
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.isort]
+known-first-party = ["app"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+preview = true
