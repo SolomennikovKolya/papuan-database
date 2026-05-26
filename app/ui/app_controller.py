@@ -23,6 +23,7 @@ from app.ui.main_window import MainWindow
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
+    from sqlalchemy.orm import Session
 
     from app.services.acl import AuthContext
 
@@ -40,6 +41,7 @@ class AppController(QObject):
         self._theme_name = get_settings().app_theme
         self._login = LoginWindow(authenticate=self._authenticate)
         self._main: MainWindow | None = None
+        self._main_session: Session | None = None
 
     def start(self) -> None:
         """Показать окно логина (точка входа GUI)."""
@@ -51,7 +53,8 @@ class AppController(QObject):
     @Slot(object)
     def _on_logged_in(self, ctx: AuthContext) -> None:
         _log.info("Открываем главное окно для user_id=%s", ctx.user_id)
-        self._main = MainWindow(ctx)
+        self._main_session = new_session()
+        self._main = MainWindow(ctx, self._main_session)
         self._main.set_theme_label(self._theme_name)
         self._main.logout_requested.connect(self._on_logout)
         self._main.theme_toggle_requested.connect(self._on_theme_toggle)
@@ -64,6 +67,9 @@ class AppController(QObject):
         if self._main is not None:
             self._main.close()
             self._main = None
+        if self._main_session is not None:
+            self._main_session.close()
+            self._main_session = None
         self._bus.user_logged_out.emit()
         self._login.reset()
         self._login.show()

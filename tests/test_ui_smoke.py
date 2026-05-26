@@ -17,6 +17,7 @@ from app.ui.widgets import GhostButton
 
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
+    from sqlalchemy.orm import Session
 
 
 @pytest.fixture(autouse=True)
@@ -99,25 +100,27 @@ class TestLoginWindow:
 
 
 class TestMainWindow:
-    def test_superadmin_sees_all_sections(self, qtbot: QtBot) -> None:
-        window = MainWindow(_superadmin_ctx())
+    def test_superadmin_sees_all_sections(self, qtbot: QtBot, session: Session) -> None:
+        window = MainWindow(_superadmin_ctx(), session)
         qtbot.addWidget(window)
         # superadmin минует проверки прав — должен увидеть все разделы.
         assert len(window._nav_buttons) >= 6
 
-    def test_user_without_permissions_hides_admin_section(self, qtbot: QtBot) -> None:
+    def test_user_without_permissions_hides_admin_section(
+        self, qtbot: QtBot, session: Session
+    ) -> None:
         ctx = AuthContext(user_id=2, login="weak", is_superadmin=False, permissions=frozenset())
-        window = MainWindow(ctx)
+        window = MainWindow(ctx, session)
         qtbot.addWidget(window)
         # Только разделы без required_permission остаются (queries).
         assert "admin" not in window._nav_buttons
         assert "queries" in window._nav_buttons
 
-    def test_logout_signal_emitted_on_button(self, qtbot: QtBot) -> None:
-        window = MainWindow(_superadmin_ctx())
+    def test_logout_signal_emitted_on_button(self, qtbot: QtBot, session: Session) -> None:
+        window = MainWindow(_superadmin_ctx(), session)
         qtbot.addWidget(window)
-        # Кнопка «Выйти» — последний GhostButton в sidebar.
-        ghost_buttons = window.findChildren(GhostButton)
-        logout_btn = ghost_buttons[-1]
+        # Ищем GhostButton с текстом «Выйти» (CrudView тоже наплодит GhostButton-ов
+        # для пагинатора, так что просто [-1] не подходит).
+        logout_btn = next(b for b in window.findChildren(GhostButton) if b.text() == "Выйти")
         with qtbot.waitSignal(window.logout_requested, timeout=1000):
             logout_btn.click()

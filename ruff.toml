@@ -46,6 +46,8 @@ ignore = [
 "app/models/**" = ["TC003"]
 # Миграции — генерируемый код Alembic, делать их «по-человечески» избыточно.
 "migrations/**" = ["D", "E501", "TC003"]
+# Диспетчер по FieldKind по своей природе — длинный match с return per case.
+"app/ui/crud/form_dialog.py" = ["PLR0911", "PLR0912"]
 
 [lint.pydocstyle]
 convention = "google"

@@ -1,8 +1,9 @@
-"""Главное окно: sidebar навигации + контентный стек + переключатель темы.
+"""Главное окно: sidebar навигации + контентный стек.
 
-Разделы sidebar-а описаны как данные (`_SECTIONS`); видимость каждого
-проверяется по правам текущего пользователя. Содержимое самих разделов
-наполнится на следующих этапах (CRUD, запросы, SQL-консоль, админка).
+Реальные страницы для разделов «Справочники», «Тренировки», «Походы»
+строятся из дескрипторов в :mod:`app.ui.descriptors`. Разделы «Запросы»,
+«SQL-консоль», «Администрирование» и «Сервисный режим» остаются заглушками
+до соответствующих этапов плана (см. ``docs/plan.md``).
 """
 
 from __future__ import annotations
@@ -24,29 +25,76 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.ui.descriptors import (
+    REFERENCE_DESCRIPTORS,
+    TRAINING_DESCRIPTORS,
+    TRIP_DESCRIPTORS,
+)
+from app.ui.pages import EntityListPage, make_placeholder
 from app.ui.widgets import GhostButton
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from sqlalchemy.orm import Session
+
     from app.services.acl import AuthContext
 
 
 @dataclass(frozen=True)
 class _Section:
-    """Описание раздела sidebar-а."""
+    """Описание раздела sidebar-а: ключ, заголовок, право, фабрика страницы."""
 
     key: str
     title: str
-    required_permission: str | None  # None — раздел виден всегда
+    required_permission: str | None
+    page_factory: Callable[[Session, AuthContext], QWidget]
+
+
+def _references_factory(session: Session, ctx: AuthContext) -> QWidget:
+    return EntityListPage(REFERENCE_DESCRIPTORS, session, ctx)
+
+
+def _training_factory(session: Session, ctx: AuthContext) -> QWidget:
+    return EntityListPage(TRAINING_DESCRIPTORS, session, ctx)
+
+
+def _trips_factory(session: Session, ctx: AuthContext) -> QWidget:
+    return EntityListPage(TRIP_DESCRIPTORS, session, ctx)
+
+
+def _queries_stub(_session: Session, _ctx: AuthContext) -> QWidget:
+    return make_placeholder(
+        "Запросы по варианту", "13 хитрых запросов появятся на этапе 7 (см. docs/plan.md)."
+    )
+
+
+def _sql_stub(_session: Session, _ctx: AuthContext) -> QWidget:
+    return make_placeholder("SQL-консоль", "SQL-консоль (read-only + RW) будет на этапе 8.")
+
+
+def _admin_stub(_session: Session, _ctx: AuthContext) -> QWidget:
+    return make_placeholder(
+        "Администрирование",
+        "Управление пользователями, ролями и журналом входов появится на этапе 9.",
+    )
+
+
+def _service_stub(_session: Session, _ctx: AuthContext) -> QWidget:
+    return make_placeholder(
+        "Сервисный режим",
+        "Очистка БД, посев демо-данных и экспорт дампа — этап 10.",
+    )
 
 
 _SECTIONS: tuple[_Section, ...] = (
-    _Section("references", "Справочники", "tourist.read"),
-    _Section("training", "Тренировки", "training_session.read"),
-    _Section("trips", "Походы", "trip.read"),
-    _Section("queries", "Запросы по варианту", None),
-    _Section("sql", "SQL-консоль", "sql.execute"),
-    _Section("admin", "Администрирование", "admin.users"),
-    _Section("service", "Сервисный режим", "service.testdata"),
+    _Section("references", "Справочники", "tourist.read", _references_factory),
+    _Section("training", "Тренировки", "training_session.read", _training_factory),
+    _Section("trips", "Походы", "trip.read", _trips_factory),
+    _Section("queries", "Запросы по варианту", None, _queries_stub),
+    _Section("sql", "SQL-консоль", "sql.execute", _sql_stub),
+    _Section("admin", "Администрирование", "admin.users", _admin_stub),
+    _Section("service", "Сервисный режим", "service.testdata", _service_stub),
 )
 
 
@@ -58,10 +106,11 @@ class MainWindow(QMainWindow):
     theme_toggle_requested = Signal()
 
     # ---- init ----
-    def __init__(self, ctx: AuthContext) -> None:
-        """Построить окно для уже вошедшего пользователя."""
+    def __init__(self, ctx: AuthContext, session: Session) -> None:
+        """Построить окно для уже вошедшего пользователя и заданной сессии."""
         super().__init__()
         self._ctx = ctx
+        self._session = session
         self._nav_group: QButtonGroup
         self._nav_buttons: dict[str, QPushButton] = {}
         self._stack: QStackedWidget
@@ -133,7 +182,6 @@ class MainWindow(QMainWindow):
             index += 1
 
         layout.addStretch(1)
-
         layout.addWidget(self._make_separator())
 
         user_label = QLabel(self._ctx.login)
@@ -156,28 +204,9 @@ class MainWindow(QMainWindow):
         for section in _SECTIONS:
             if not self._can_see(section):
                 continue
-            self._stack.addWidget(self._make_placeholder(section))
+            page = section.page_factory(self._session, self._ctx)
+            self._stack.addWidget(page)
         return self._stack
-
-    def _make_placeholder(self, section: _Section) -> QWidget:
-        page = QWidget()
-        layout = QVBoxLayout(page)
-        layout.setContentsMargins(32, 32, 32, 32)
-        layout.setSpacing(8)
-
-        title = QLabel(section.title)
-        title.setObjectName("H1")
-        layout.addWidget(title)
-
-        hint = QLabel(
-            "Этот раздел появится на следующих этапах (см. docs/plan.md). Пока — заглушка."
-        )
-        hint.setObjectName("Muted")
-        hint.setWordWrap(True)
-        layout.addWidget(hint)
-
-        layout.addStretch(1)
-        return page
 
     def _make_separator(self) -> QWidget:
         line = QFrame()
@@ -194,7 +223,6 @@ class MainWindow(QMainWindow):
     def _wire(self) -> None:
         self._nav_group.idClicked.connect(self._on_nav_clicked)
         self._theme_btn.clicked.connect(self.theme_toggle_requested)
-        # Активируем первый доступный раздел.
         first = next(iter(self._nav_buttons.values()), None)
         if first is not None:
             first.setChecked(True)

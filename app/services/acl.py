@@ -66,6 +66,18 @@ def use(ctx: AuthContext | None) -> Iterator[None]:
         _current.reset(token)
 
 
+def require_permission(permission: str) -> AuthContext:
+    """Проверить право у текущего пользователя; бросить :class:`PermissionDenied`.
+
+    Функциональный аналог декоратора :func:`require` — нужен когда имя
+    права собирается динамически (например, в дженерик-сервисах).
+    """
+    ctx = require_current()
+    if not ctx.has(permission):
+        raise PermissionDenied(f"Нет права {permission!r}")
+    return ctx
+
+
 def require(permission: str) -> Callable[[F], F]:
     """Декоратор: пропускает вызов, только если у текущего пользователя есть ``permission``.
 

@@ -124,7 +124,7 @@
 
 Чтобы избежать «зоопарка», все виджеты пишутся по единому шаблону.
 
-**Структура класса виджета** — строго в таком порядке (разделители комментарифми писать не надо):
+**Структура класса виджета** — строго в таком порядке:
 
 ```python
 class SomeWidget(QWidget):
@@ -136,8 +136,8 @@ class SomeWidget(QWidget):
     # ---- init ----
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._build_ui()      # создание дочерних виджетов и layout
-        self._wire()          # connect-ы сигналов
+        self._build_ui()  # создание дочерних виджетов и layout
+        self._wire()  # connect-ы сигналов
 
     # ---- public api ----
     def set_data(self, items: list[Item]) -> None:
@@ -146,15 +146,12 @@ class SomeWidget(QWidget):
 
     # ---- slots ----
     @Slot()
-    def _on_add_clicked(self) -> None:
-        ...
+    def _on_add_clicked(self) -> None: ...
 
     # ---- private ----
-    def _build_ui(self) -> None:
-        ...
+    def _build_ui(self) -> None: ...
 
-    def _wire(self) -> None:
-        ...
+    def _wire(self) -> None: ...
 ```
 
 Правила:
