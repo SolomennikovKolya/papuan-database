@@ -10,12 +10,14 @@ from app.services.acl import (
     require_permission,
     use,
 )
+from app.services.audit import AuditService
 from app.services.auth import AuthService
 from app.services.entity_service import EntityService
 from app.services.roles import RolesService
 from app.services.users import UsersService
 
 __all__ = [
+    "AuditService",
     "AuthContext",
     "AuthService",
     "EntityService",

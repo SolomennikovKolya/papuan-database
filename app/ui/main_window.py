@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 from app.core.query_history import QueryHistory
 from app.db.engine import get_engine, get_readonly_engine
 from app.services.sql_console import SqlConsoleService
+from app.ui.admin import AdminPage
 from app.ui.descriptors import (
     REFERENCE_DESCRIPTORS,
     TRAINING_DESCRIPTORS,
@@ -78,11 +79,8 @@ def _sql_factory(_session: Session, ctx: AuthContext) -> QWidget:
     return SqlConsoleView(service=service, history=history, ctx=ctx)
 
 
-def _admin_stub(_session: Session, _ctx: AuthContext) -> QWidget:
-    return make_placeholder(
-        "Администрирование",
-        "Управление пользователями, ролями и журналом входов появится на этапе 9.",
-    )
+def _admin_factory(session: Session, ctx: AuthContext) -> QWidget:
+    return AdminPage(session, ctx)
 
 
 def _service_stub(_session: Session, _ctx: AuthContext) -> QWidget:
@@ -98,7 +96,7 @@ _SECTIONS: tuple[_Section, ...] = (
     _Section("trips", "Походы", "trip.read", _trips_factory),
     _Section("queries", "Запросы по варианту", None, _queries_factory),
     _Section("sql", "SQL-консоль", "sql.execute", _sql_factory),
-    _Section("admin", "Администрирование", "admin.users", _admin_stub),
+    _Section("admin", "Администрирование", "admin.users", _admin_factory),
     _Section("service", "Сервисный режим", "service.testdata", _service_stub),
 )
 
