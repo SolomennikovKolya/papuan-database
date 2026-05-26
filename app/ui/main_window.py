@@ -31,6 +31,7 @@ from app.ui.descriptors import (
     TRIP_DESCRIPTORS,
 )
 from app.ui.pages import EntityListPage, make_placeholder
+from app.ui.queries.page import QueriesPage
 from app.ui.widgets import GhostButton
 
 if TYPE_CHECKING:
@@ -63,10 +64,8 @@ def _trips_factory(session: Session, ctx: AuthContext) -> QWidget:
     return EntityListPage(TRIP_DESCRIPTORS, session, ctx)
 
 
-def _queries_stub(_session: Session, _ctx: AuthContext) -> QWidget:
-    return make_placeholder(
-        "Запросы по варианту", "13 хитрых запросов появятся на этапе 7 (см. docs/plan.md)."
-    )
+def _queries_factory(session: Session, ctx: AuthContext) -> QWidget:
+    return QueriesPage(session, ctx)
 
 
 def _sql_stub(_session: Session, _ctx: AuthContext) -> QWidget:
@@ -91,7 +90,7 @@ _SECTIONS: tuple[_Section, ...] = (
     _Section("references", "Справочники", "tourist.read", _references_factory),
     _Section("training", "Тренировки", "training_session.read", _training_factory),
     _Section("trips", "Походы", "trip.read", _trips_factory),
-    _Section("queries", "Запросы по варианту", None, _queries_stub),
+    _Section("queries", "Запросы по варианту", None, _queries_factory),
     _Section("sql", "SQL-консоль", "sql.execute", _sql_stub),
     _Section("admin", "Администрирование", "admin.users", _admin_stub),
     _Section("service", "Сервисный режим", "service.testdata", _service_stub),

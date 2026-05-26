@@ -48,6 +48,11 @@ ignore = [
 "migrations/**" = ["D", "E501", "TC003"]
 # Диспетчер по FieldKind по своей природе — длинный match с return per case.
 "app/ui/crud/form_dialog.py" = ["PLR0911", "PLR0912"]
+"app/ui/crud/form_builder.py" = ["PLR0911", "PLR0912"]
+# Декларативные описания запросов и доменных сущностей — длинные ровные строки
+# с FormField/Column/ResultColumn проще читать в одну строку, чем разбивать.
+"app/ui/queries/descriptors.py" = ["E501"]
+"app/services/queries.py" = ["E501"]
 
 [lint.pydocstyle]
 convention = "google"
