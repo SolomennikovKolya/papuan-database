@@ -1,9 +1,11 @@
 """Управление сессиями SQLAlchemy.
 
-Используем контекстный менеджер :func:`session_scope` как **единственную**
-точку открытия транзакции. Он гарантирует commit при успехе и rollback при
-исключении. Сервисный слой принимает уже открытую сессию вторым аргументом
-или открывает свою через ``session_scope``.
+В большинстве случаев каллер использует контекстный менеджер
+:func:`session_scope` — он гарантирует commit при успехе и rollback при
+исключении. Когда поведение «commit в любом случае» обязательно (например,
+:class:`~app.services.auth.AuthService.authenticate`, который должен сохранить
+запись аудита даже при ``AuthenticationError``), берётся «голая» сессия
+через :func:`new_session` и закрывается каллером вручную.
 """
 
 from __future__ import annotations
@@ -32,6 +34,11 @@ def _session_factory() -> sessionmaker[Session]:
     )
 
 
+def new_session() -> Session:
+    """Открыть новую сессию (каллер сам решает, когда commit/rollback/close)."""
+    return _session_factory()()
+
+
 @contextmanager
 def session_scope() -> Iterator[Session]:
     """Открыть транзакционную сессию.
@@ -39,7 +46,7 @@ def session_scope() -> Iterator[Session]:
     Commit выполняется автоматически при успешном выходе из блока, rollback —
     при любом исключении. Сессия всегда закрывается.
     """
-    session = _session_factory()()
+    session = new_session()
     try:
         yield session
         session.commit()
