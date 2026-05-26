@@ -53,6 +53,9 @@ ignore = [
 # с FormField/Column/ResultColumn проще читать в одну строку, чем разбивать.
 "app/ui/queries/descriptors.py" = ["E501"]
 "app/services/queries.py" = ["E501"]
+# Демо-фикстура — большой блок инициализации данных: длинные строки кортежей и
+# длинная функция seed() — норма для такого файла.
+"app/fixtures/demo.py" = ["E501", "PLR0915"]
 
 [lint.pydocstyle]
 convention = "google"

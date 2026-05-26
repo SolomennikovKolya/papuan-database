@@ -34,8 +34,9 @@ from app.ui.descriptors import (
     TRAINING_DESCRIPTORS,
     TRIP_DESCRIPTORS,
 )
-from app.ui.pages import EntityListPage, make_placeholder
+from app.ui.pages import EntityListPage
 from app.ui.queries.page import QueriesPage
+from app.ui.service_panel import ServicePanel
 from app.ui.sql_console import SqlConsoleView
 from app.ui.widgets import GhostButton
 
@@ -83,11 +84,8 @@ def _admin_factory(session: Session, ctx: AuthContext) -> QWidget:
     return AdminPage(session, ctx)
 
 
-def _service_stub(_session: Session, _ctx: AuthContext) -> QWidget:
-    return make_placeholder(
-        "Сервисный режим",
-        "Очистка БД, посев демо-данных и экспорт дампа — этап 10.",
-    )
+def _service_factory(session: Session, ctx: AuthContext) -> QWidget:
+    return ServicePanel(session, ctx)
 
 
 _SECTIONS: tuple[_Section, ...] = (
@@ -97,7 +95,7 @@ _SECTIONS: tuple[_Section, ...] = (
     _Section("queries", "Запросы по варианту", None, _queries_factory),
     _Section("sql", "SQL-консоль", "sql.execute", _sql_factory),
     _Section("admin", "Администрирование", "admin.users", _admin_factory),
-    _Section("service", "Сервисный режим", "service.testdata", _service_stub),
+    _Section("service", "Сервисный режим", "service.testdata", _service_factory),
 )
 
 

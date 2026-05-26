@@ -13,6 +13,7 @@ from app.services.acl import (
 from app.services.audit import AuditService
 from app.services.auth import AuthService
 from app.services.entity_service import EntityService
+from app.services.maintenance import MaintenanceService
 from app.services.roles import RolesService
 from app.services.users import UsersService
 
@@ -21,6 +22,7 @@ __all__ = [
     "AuthContext",
     "AuthService",
     "EntityService",
+    "MaintenanceService",
     "RolesService",
     "UsersService",
     "current",
