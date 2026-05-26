@@ -40,6 +40,12 @@ ignore = [
 [lint.per-file-ignores]
 "tests/**" = ["D", "PLR2004"]
 "app/__main__.py" = ["D"]
+# SQLAlchemy 2.0 typed-mapping (Mapped[date], Mapped[Decimal] и т.п.) разрешает
+# аннотации через get_type_hints() — типы должны быть импортируемы в runtime,
+# поэтому TC003 (move stdlib import под TYPE_CHECKING) тут даёт ложные срабатывания.
+"app/models/**" = ["TC003"]
+# Миграции — генерируемый код Alembic, делать их «по-человечески» избыточно.
+"migrations/**" = ["D", "E501", "TC003"]
 
 [lint.pydocstyle]
 convention = "google"
