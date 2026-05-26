@@ -25,6 +25,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.core.query_history import QueryHistory
+from app.db.engine import get_engine, get_readonly_engine
+from app.services.sql_console import SqlConsoleService
 from app.ui.descriptors import (
     REFERENCE_DESCRIPTORS,
     TRAINING_DESCRIPTORS,
@@ -32,6 +35,7 @@ from app.ui.descriptors import (
 )
 from app.ui.pages import EntityListPage, make_placeholder
 from app.ui.queries.page import QueriesPage
+from app.ui.sql_console import SqlConsoleView
 from app.ui.widgets import GhostButton
 
 if TYPE_CHECKING:
@@ -68,8 +72,10 @@ def _queries_factory(session: Session, ctx: AuthContext) -> QWidget:
     return QueriesPage(session, ctx)
 
 
-def _sql_stub(_session: Session, _ctx: AuthContext) -> QWidget:
-    return make_placeholder("SQL-консоль", "SQL-консоль (read-only + RW) будет на этапе 8.")
+def _sql_factory(_session: Session, ctx: AuthContext) -> QWidget:
+    service = SqlConsoleService(rw_engine=get_engine(), ro_engine=get_readonly_engine())
+    history = QueryHistory()
+    return SqlConsoleView(service=service, history=history, ctx=ctx)
 
 
 def _admin_stub(_session: Session, _ctx: AuthContext) -> QWidget:
@@ -91,7 +97,7 @@ _SECTIONS: tuple[_Section, ...] = (
     _Section("training", "Тренировки", "training_session.read", _training_factory),
     _Section("trips", "Походы", "trip.read", _trips_factory),
     _Section("queries", "Запросы по варианту", None, _queries_factory),
-    _Section("sql", "SQL-консоль", "sql.execute", _sql_stub),
+    _Section("sql", "SQL-консоль", "sql.execute", _sql_factory),
     _Section("admin", "Администрирование", "admin.users", _admin_stub),
     _Section("service", "Сервисный режим", "service.testdata", _service_stub),
 )
