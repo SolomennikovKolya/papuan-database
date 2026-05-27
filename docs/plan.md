@@ -4,77 +4,77 @@
 и каждый этап можно было закоммитить отдельно.
 
 ## Этап 0 — Скелет проекта (~0.5 дня)
-- [ ] `pyproject.toml` (uv), зависимости: PySide6, SQLAlchemy, alembic, psycopg[binary], pydantic-settings, argon2-cffi, qtawesome, python-dateutil, pytest, pytest-qt, ruff, mypy.
-- [ ] Структура каталогов: `app/{core,db,models,repositories,services,viewmodels,ui,theme,fixtures}`, `tests/`, `migrations/`, `docs/`.
-- [ ] `ruff.toml`, `mypy.ini`, `.editorconfig`, `.gitignore`, `.env.example`.
-- [ ] `docker-compose.yml` — Postgres 16 + Adminer.
-- [ ] Минимальный `app/__main__.py` («Hello, Qt»).
-- [ ] Pre-commit (опционально).
+- [x] `pyproject.toml` (uv), зависимости: PySide6, SQLAlchemy, alembic, psycopg[binary], pydantic-settings, argon2-cffi, qtawesome, python-dateutil, pytest, pytest-qt, ruff, mypy.
+- [x] Структура каталогов: `app/{core,db,models,repositories,services,viewmodels,ui,theme,fixtures}`, `tests/`, `migrations/`, `docs/`.
+- [x] `ruff.toml`, `mypy.ini`, `.editorconfig`, `.gitignore`, `.env.example`.
+- [x] `docker-compose.yml` — Postgres 16 + Adminer.
+- [x] Минимальный `app/__main__.py` («Hello, Qt»).
+- [x] Pre-commit (опционально).
 
 ## Этап 1 — Конфиг и инфраструктура (~0.5 дня)
-- [ ] `core/config.py` — pydantic-settings.
-- [ ] `core/logging.py` — настройка логгеров.
-- [ ] `core/errors.py` — `AppError`, `PermissionDenied`, `ValidationError`, `NotFound`.
-- [ ] `db/engine.py`, `db/session.py` (контекстный менеджер сессии).
-- [ ] Проверка подключения CLI-командой `python -m app.cli check-db`.
+- [x] `core/config.py` — pydantic-settings.
+- [x] `core/logging.py` — настройка логгеров.
+- [x] `core/errors.py` — `AppError`, `PermissionDenied`, `ValidationError`, `NotFound`.
+- [x] `db/engine.py`, `db/session.py` (контекстный менеджер сессии).
+- [x] Проверка подключения CLI-командой `python -m app.cli check-db`.
 
 ## Этап 2 — ER-модель и миграции (~1–1.5 дня)
-- [ ] ORM-классы для всех 20 доменных + 6 системных сущностей (см. §3 спецификации).
-- [ ] Alembic, первая миграция `0001_init`.
-- [ ] Миграция `0002_constraints_and_triggers` — все `CHECK`, `UNIQUE`, триггеры из §6.2.
-- [ ] Миграция `0003_seed_permissions_and_admin` — фикстура прав, роль `superadmin`, пользователь `admin`.
-- [ ] Read-only роль БД (для SQL-консоли).
-- [ ] **Артефакт:** `docs/er-diagram.md` — Mermaid ER-диаграмма.
+- [x] ORM-классы для всех 20 доменных + 6 системных сущностей (см. §3 спецификации).
+- [x] Alembic, первая миграция `0001_init`.
+- [x] Миграция `0002_constraints_and_triggers` — все `CHECK`, `UNIQUE`, триггеры из §6.2.
+- [x] Миграция `0003_seed_permissions_and_admin` — фикстура прав, роль `superadmin`, пользователь `admin`.
+- [x] Read-only роль БД (для SQL-консоли).
+- [x] **Артефакт:** `docs/er-diagram.md` — Mermaid ER-диаграмма.
 
 ## Этап 3 — Слой данных (~0.5 дня)
-- [ ] `repositories/base.py` — дженерик `Repository[Model]` с CRUD + пагинацией + сортировкой.
-- [ ] Тонкие наследники для сущностей, где нужны спец-запросы (Trip, Tourist, Trainer).
-- [ ] Юнит-тесты на базовый репозиторий.
+- [x] `repositories/base.py` — дженерик `Repository[Model]` с CRUD + пагинацией + сортировкой.
+- [x] Тонкие наследники для сущностей, где нужны спец-запросы (Trip, Tourist, Trainer).
+- [x] Юнит-тесты на базовый репозиторий.
 
 ## Этап 4 — ACL и аутентификация (~1 день)
-- [ ] `services/auth.py` — `login(login, password) -> Session`, хеш argon2, блокировка по `AuditLogin`.
-- [ ] `services/acl.py` — `Permission`, `require()` декоратор, проверка через текущую сессию (контекст-вар).
-- [ ] `services/users.py`, `services/roles.py` — администрирование.
-- [ ] Юнит-тесты: счастливый/несчастливый путь логина; `require` пропускает/блокирует.
+- [x] `services/auth.py` — `login(login, password) -> Session`, хеш argon2, блокировка по `AuditLogin`.
+- [x] `services/acl.py` — `Permission`, `require()` декоратор, проверка через текущую сессию (контекст-вар).
+- [x] `services/users.py`, `services/roles.py` — администрирование.
+- [x] Юнит-тесты: счастливый/несчастливый путь логина; `require` пропускает/блокирует.
 
 ## Этап 5 — Базовый UI и темы (~1–1.5 дня)
-- [ ] `theme/tokens_light.py`, `tokens_dark.py`, `theme/qss.py` — шаблон, `apply_theme()`.
-- [ ] Общие виджеты: `PrimaryButton`, `Card`, `DataTable`, `FormField`, `Toast`.
-- [ ] Окно логина.
-- [ ] Главное окно: sidebar + content area + переключатель темы.
-- [ ] Роутинг между разделами через стек-виджет.
+- [x] `theme/tokens_light.py`, `tokens_dark.py`, `theme/qss.py` — шаблон, `apply_theme()`.
+- [x] Общие виджеты: `PrimaryButton`, `Card`, `DataTable`, `FormField`, `Toast`.
+- [x] Окно логина.
+- [x] Главное окно: sidebar + content area + переключатель темы.
+- [x] Роутинг между разделами через стек-виджет.
 
 ## Этап 6 — Дженерик-CRUD UI (~1 день)
-- [ ] `ui/crud/CrudView` — таблица + пагинация + поиск + диалог формы.
-- [ ] Описание сущности (`EntityDescriptor`): колонки, поля формы, валидаторы.
-- [ ] Подключить для 5 базовых справочников (Section, Group, Person, Route, Difficulty) — убедиться, что шаблон рабочий.
-- [ ] Раскатить на остальные 15 сущностей.
+- [x] `ui/crud/CrudView` — таблица + пагинация + поиск + диалог формы.
+- [x] Описание сущности (`EntityDescriptor`): колонки, поля формы, валидаторы.
+- [x] Подключить для 5 базовых справочников (Section, Group, Person, Route, Difficulty) — убедиться, что шаблон рабочий.
+- [x] Раскатить на остальные 15 сущностей.
 
 ## Этап 7 — Запросы по варианту (~1.5 дня)
-- [ ] 13 экранов «Фильтр + результат» (`ui/queries/QueryView`).
-- [ ] Под каждый запрос — типизированный сервисный метод с параметрами.
-- [ ] Экспорт результата в CSV (общая утилита).
+- [x] 13 экранов «Фильтр + результат» (`ui/queries/QueryView`).
+- [x] Под каждый запрос — типизированный сервисный метод с параметрами.
+- [x] Экспорт результата в CSV (общая утилита).
 
 ## Этап 8 — SQL-консоль (~0.5 дня)
-- [ ] Экран SQL с переключателем «read-only / full».
-- [ ] История запросов (JSON в `appdirs.user_data_dir`).
-- [ ] Обёртка транзакции с явным commit/rollback.
+- [x] Экран SQL с переключателем «read-only / full».
+- [x] История запросов (JSON в `appdirs.user_data_dir`).
+- [x] Обёртка транзакции с явным commit/rollback.
 
 ## Этап 9 — Админ-панель (~0.5 дня)
-- [ ] Управление пользователями (создать/блокировать/сбросить пароль).
-- [ ] Управление ролями (создать/удалить, чекбокс-матрица прав).
-- [ ] Журнал входов.
+- [x] Управление пользователями (создать/блокировать/сбросить пароль).
+- [x] Управление ролями (создать/удалить, чекбокс-матрица прав).
+- [x] Журнал входов.
 
 ## Этап 10 — Сервисный режим (~0.5 дня)
-- [ ] Очистка БД (с двойным подтверждением).
-- [ ] Засев демо-данных (`fixtures/demo.py`).
-- [ ] Экспорт дампа (`pg_dump` через subprocess).
+- [x] Очистка БД (с двойным подтверждением).
+- [x] Засев демо-данных (`fixtures/demo.py`).
+- [x] Экспорт дампа (`pg_dump` через subprocess).
 
 ## Этап 11 — Документация и сдача (~0.5 дня)
-- [ ] README: установка, развёртывание, скриншоты, роли по умолчанию, FAQ.
-- [ ] `docs/er-diagram.md` — финальная версия.
-- [ ] `docs/screens.md` — короткие описания экранов со скриншотами.
-- [ ] Прогон Definition of Done из спецификации §9.
+- [x] README: установка, развёртывание, скриншоты, роли по умолчанию, FAQ.
+- [x] `docs/er-diagram.md` — финальная версия.
+- [x] `docs/screens.md` — короткие описания экранов со скриншотами.
+- [x] Прогон Definition of Done из спецификации §9.
 
 ---
 
@@ -91,3 +91,34 @@ ER-модель + триггеры (этап 2) и раскатка CRUD на в
 - CI/CD pipeline (не требование).
 - Электронная упаковка (PyInstaller). Сдаём как `uv run python -m app`.
 - Веб-морду к Adminer проксировать никуда не нужно — он сам по себе.
+
+---
+
+## Definition of Done (спецификация §9)
+
+- [x] Все 13 запросов варианта работают и показывают «всего: N» — этап 7.
+- [x] CRUD на всех доменных сущностях с одиночным PK (16 шт.) через единый
+  `CrudView` + `EntityDescriptor` — этап 6. Сущности с композитным PK
+  (`Attendance`, `CompetitionParticipation`, `RolePermission`, `UserRole`)
+  управляются через родителей, как зафиксировано в спецификации.
+- [x] Аутентификация (argon2 + блокировка) + ACL с настройкой ролей через UI —
+  этапы 4 и 9.
+- [x] Триггеры из §6.2 покрыты миграцией `0002_constraints_and_triggers`
+  (4 триггера PL/pgSQL) — этап 2.
+- [x] Темы Light/Dark переключаются без перезапуска — этап 5.
+- [x] `docker compose up -d && uv run ...` поднимает систему «с нуля» за < 5 минут.
+- [x] `ruff check` и `ruff format --check` зелёные.
+- [x] README покрывает развёртывание, роли по умолчанию, карту экранов
+  (см. [screens.md](screens.md)), сервисный режим и FAQ.
+- [x] 110 автотестов проходят за < 5 с.
+
+## Артефакты, оставленные после сдачи
+
+| Документ                              | Что внутри                                          |
+|---------------------------------------|-----------------------------------------------------|
+| `README.md`                           | Развёртывание, архитектура, роли, миграции, FAQ     |
+| `docs/specification.md`               | Полный контракт реализации                          |
+| `docs/er-diagram.md`                  | ER-диаграмма (Mermaid) + таблицы сущностей          |
+| `docs/plan.md`                        | Этот файл — план + DoD                              |
+| `docs/screens.md`                     | Карта экранов и пользовательские потоки             |
+| `docs/task.md`, `docs/requirements.md`| Исходное ТЗ                                         |

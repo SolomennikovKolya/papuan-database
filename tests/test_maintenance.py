@@ -30,9 +30,7 @@ if TYPE_CHECKING:
     from tests.conftest import SeededAcl
 
 
-_ADMIN_CTX = AuthContext(
-    user_id=1, login="admin", is_superadmin=True, permissions=frozenset()
-)
+_ADMIN_CTX = AuthContext(user_id=1, login="admin", is_superadmin=True, permissions=frozenset())
 
 
 class TestDomainTables:
@@ -73,9 +71,7 @@ class TestSeed:
 
 
 class TestTruncate:
-    def test_truncate_removes_domain_data(
-        self, session: Session, seeded_acl: SeededAcl
-    ) -> None:
+    def test_truncate_removes_domain_data(self, session: Session, seeded_acl: SeededAcl) -> None:
         with use(_ADMIN_CTX):
             MaintenanceService(session).seed_demo()
             assert session.execute(select(Person)).first() is not None
@@ -85,9 +81,7 @@ class TestTruncate:
         assert session.execute(select(SectionHead)).first() is None
         assert session.execute(select(Difficulty)).first() is None
 
-    def test_truncate_keeps_acl_and_audit(
-        self, session: Session, seeded_acl: SeededAcl
-    ) -> None:
+    def test_truncate_keeps_acl_and_audit(self, session: Session, seeded_acl: SeededAcl) -> None:
         # AuditLogin запись для эффекта
         session.add(AuditLogin(user_id=None, login_attempted="x", success=False))
         session.commit()
@@ -117,15 +111,11 @@ class TestExport:
 
 class TestPermissions:
     def test_truncate_requires_service_testdata(self, session: Session) -> None:
-        weak = AuthContext(
-            user_id=99, login="weak", is_superadmin=False, permissions=frozenset()
-        )
+        weak = AuthContext(user_id=99, login="weak", is_superadmin=False, permissions=frozenset())
         with use(weak), pytest.raises(PermissionDenied):
             MaintenanceService(session).truncate_domain()
 
     def test_seed_requires_service_testdata(self, session: Session) -> None:
-        weak = AuthContext(
-            user_id=99, login="weak", is_superadmin=False, permissions=frozenset()
-        )
+        weak = AuthContext(user_id=99, login="weak", is_superadmin=False, permissions=frozenset())
         with use(weak), pytest.raises(PermissionDenied):
             MaintenanceService(session).seed_demo()
