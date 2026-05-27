@@ -530,27 +530,17 @@ TRIP_PARTICIPANT = EntityDescriptor(
 
 # ---- Группировка для UI ----
 
-REFERENCE_DESCRIPTORS: list[EntityDescriptor] = [
-    PERSON,
-    SECTION_HEAD,
-    TRAINER,
-    TOURIST,
-    SECTION,
-    GROUP,
-    GROUP_MEMBERSHIP,
-    DIFFICULTY,
-    ROUTE,
-    ROUTE_POINT,
-    COMPETITION,
+# Все сущности в одном списке, разбитом на смысловые группы. Группа отображается
+# в sidebar-е как disabled-заголовок (см. EntityListPage).
+DATA_GROUPS: list[tuple[str, list[EntityDescriptor]]] = [
+    ("Люди", [PERSON, SECTION_HEAD, TRAINER, TOURIST]),
+    ("Структура клуба", [SECTION, GROUP, GROUP_MEMBERSHIP]),
+    ("Тренировки и соревнования", [TRAINING_SESSION, COMPETITION]),
+    ("Маршруты", [DIFFICULTY, ROUTE, ROUTE_POINT]),
+    ("Походы", [TRIP, TRIP_PLAN_DAY, TRIP_DIARY, TRIP_PARTICIPANT]),
 ]
 
-TRAINING_DESCRIPTORS: list[EntityDescriptor] = [
-    TRAINING_SESSION,
-]
 
-TRIP_DESCRIPTORS: list[EntityDescriptor] = [
-    TRIP,
-    TRIP_PLAN_DAY,
-    TRIP_DIARY,
-    TRIP_PARTICIPANT,
-]
+def all_descriptors() -> list[EntityDescriptor]:
+    """Плоский список всех дескрипторов из ``DATA_GROUPS`` (порядок сохраняется)."""
+    return [d for _, group in DATA_GROUPS for d in group]

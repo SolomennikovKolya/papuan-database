@@ -65,72 +65,210 @@ QPushButton#NavItem:checked {{
 }}
 
 /* ---- Buttons ---- */
+QPushButton#PrimaryButton, QPushButton#SecondaryButton {{
+    border-radius: {radius_md}px;
+    padding: 0 {spacing_lg}px;
+    min-height: 32px;
+    max-height: 32px;
+    font-weight: 500;
+}}
 QPushButton#PrimaryButton {{
     background-color: {accent};
     color: {fg_on_accent};
-    border: none;
-    border-radius: {radius_md}px;
-    padding: {spacing_sm}px {spacing_lg}px;
-    font-weight: 600;
-    min-height: 28px;
+    border: 1px solid {accent};
 }}
 QPushButton#PrimaryButton:hover {{
     background-color: {accent_hover};
+    border-color: {accent_hover};
 }}
 QPushButton#PrimaryButton:pressed {{
     background-color: {accent_pressed};
+    border-color: {accent_pressed};
 }}
 QPushButton#PrimaryButton:disabled {{
-    background-color: {bg_pressed};
-    color: {fg_muted};
+    background-color: {bg_disabled};
+    color: {fg_disabled};
+    border-color: {bg_disabled};
 }}
 
 QPushButton#SecondaryButton {{
-    background-color: transparent;
+    background-color: {bg_surface};
     color: {fg_primary};
     border: 1px solid {border_strong};
-    border-radius: {radius_md}px;
-    padding: {spacing_sm}px {spacing_lg}px;
-    min-height: 28px;
 }}
 QPushButton#SecondaryButton:hover {{
     background-color: {bg_hover};
     border-color: {accent};
+    color: {fg_primary};
 }}
 QPushButton#SecondaryButton:pressed {{
     background-color: {bg_pressed};
+}}
+QPushButton#SecondaryButton:disabled {{
+    background-color: {bg_surface_alt};
+    color: {fg_disabled};
+    border-color: {border_subtle};
 }}
 
 QPushButton#GhostButton {{
     background-color: transparent;
     color: {fg_secondary};
     border: none;
-    padding: {spacing_xs}px {spacing_sm}px;
+    padding: {spacing_sm}px {spacing_lg}px;
+    text-align: left;
     border-radius: {radius_sm}px;
 }}
 QPushButton#GhostButton:hover {{
     background-color: {bg_hover};
     color: {fg_primary};
 }}
+QPushButton#GhostButton:disabled {{
+    color: {fg_disabled};
+}}
 
 /* ---- Inputs ---- */
-QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDateEdit, QDateTimeEdit {{
+QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QDateEdit, QDateTimeEdit {{
     background-color: {bg_input};
     color: {fg_primary};
     border: 1px solid {border_subtle};
     border-radius: {radius_md}px;
-    padding: {spacing_sm}px {spacing_md}px;
+    padding: 0 {spacing_md}px;
     selection-background-color: {accent};
     selection-color: {fg_on_accent};
-    min-height: 22px;
+    min-height: 32px;
+    max-height: 32px;
+}}
+QPlainTextEdit, QTextEdit {{
+    padding: {spacing_sm}px {spacing_md}px;
+    min-height: 80px;
+    max-height: none;
 }}
 QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus,
-QComboBox:focus, QSpinBox:focus, QDateEdit:focus, QDateTimeEdit:focus {{
-    border: 1px solid {border_focus};
+QSpinBox:focus, QDoubleSpinBox:focus, QDateEdit:focus, QDateTimeEdit:focus {{
+    border-color: {border_focus};
 }}
-QLineEdit:disabled, QComboBox:disabled {{
+QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QDateEdit:disabled {{
     background-color: {bg_surface_alt};
+    color: {fg_disabled};
+}}
+
+/* ---- Combobox ---- */
+QComboBox {{
+    background-color: {bg_input};
+    color: {fg_primary};
+    border: 1px solid {border_subtle};
+    border-radius: {radius_md}px;
+    padding-left: {spacing_md}px;
+    padding-right: 28px;
+    min-height: 32px;
+    max-height: 32px;
+}}
+QComboBox:focus {{
+    border-color: {border_focus};
+}}
+QComboBox:disabled {{
+    background-color: {bg_surface_alt};
+    color: {fg_disabled};
+}}
+QComboBox::drop-down {{
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 24px;
+    border: none;
+    background: transparent;
+}}
+QComboBox::down-arrow {{
+    image: none;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid {fg_secondary};
+    margin-right: 8px;
+}}
+QComboBox::down-arrow:on {{
+    border-top: none;
+    border-bottom: 6px solid {accent};
+}}
+QComboBox QAbstractItemView {{
+    background-color: {bg_surface};
+    color: {fg_primary};
+    border: 1px solid {border_subtle};
+    selection-background-color: {accent};
+    selection-color: {fg_on_accent};
+    outline: 0;
+    padding: 4px;
+}}
+
+QCheckBox {{
+    spacing: 8px;
+    color: {fg_primary};
+}}
+QCheckBox::indicator {{
+    width: 16px;
+    height: 16px;
+    border: 1px solid {border_strong};
+    border-radius: 3px;
+    background-color: {bg_input};
+}}
+QCheckBox::indicator:hover {{
+    border-color: {accent};
+}}
+QCheckBox::indicator:checked {{
+    background-color: {accent};
+    border-color: {accent};
+}}
+QCheckBox::indicator:disabled {{
+    background-color: {bg_surface_alt};
+    border-color: {border_subtle};
+}}
+
+/* ---- Tables / Lists ---- */
+QTableView, QListWidget, QTreeView {{
+    background-color: {bg_surface};
+    alternate-background-color: {bg_surface_alt};
+    color: {fg_primary};
+    border: 1px solid {border_subtle};
+    border-radius: {radius_md}px;
+    gridline-color: {border_subtle};
+    selection-background-color: {accent};
+    selection-color: {fg_on_accent};
+    outline: 0;
+}}
+QTableView::item, QListWidget::item, QTreeView::item {{
+    padding: 6px 4px;
+    border: none;
+}}
+QTableView::item:selected, QListWidget::item:selected, QTreeView::item:selected {{
+    background-color: {accent};
+    color: {fg_on_accent};
+}}
+QHeaderView {{
+    background-color: {bg_surface_alt};
+    border: none;
+}}
+QHeaderView::section {{
+    background-color: {bg_surface_alt};
+    color: {fg_secondary};
+    padding: 8px 6px;
+    border: none;
+    border-right: 1px solid {border_subtle};
+    border-bottom: 1px solid {border_subtle};
+    font-weight: 600;
+}}
+QTableCornerButton::section {{
+    background-color: {bg_surface_alt};
+    border: none;
+    border-right: 1px solid {border_subtle};
+    border-bottom: 1px solid {border_subtle};
+}}
+
+QListWidget#GroupedList::item:disabled {{
+    background-color: transparent;
     color: {fg_muted};
+    font-weight: 700;
+    font-size: {font_size_sm}px;
+    padding: {spacing_md}px {spacing_md}px {spacing_xs}px {spacing_md}px;
 }}
 
 /* ---- Cards / surfaces ---- */
@@ -168,6 +306,34 @@ QStatusBar {{
     background-color: {bg_surface_alt};
     color: {fg_muted};
     border-top: 1px solid {border_subtle};
+}}
+
+/* ---- Tabs ---- */
+QTabWidget::pane {{
+    border: 1px solid {border_subtle};
+    border-radius: {radius_md}px;
+    background-color: {bg_surface};
+    top: -1px;
+}}
+QTabBar::tab {{
+    background-color: transparent;
+    color: {fg_secondary};
+    padding: 8px 18px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-top-left-radius: {radius_md}px;
+    border-top-right-radius: {radius_md}px;
+    margin-right: 2px;
+}}
+QTabBar::tab:hover {{
+    color: {fg_primary};
+    background-color: {bg_hover};
+}}
+QTabBar::tab:selected {{
+    background-color: {bg_surface};
+    color: {fg_primary};
+    border-color: {border_subtle};
+    font-weight: 600;
 }}
 
 /* ---- Scrollbars ---- */

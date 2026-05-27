@@ -22,11 +22,13 @@ class Theme:
     bg_hover: str
     bg_pressed: str
     bg_input: str
+    bg_disabled: str
 
     # --- text ---
     fg_primary: str
     fg_secondary: str
     fg_muted: str
+    fg_disabled: str
     fg_on_accent: str
 
     # --- borders ---
@@ -73,9 +75,11 @@ def light_theme() -> Theme:
         bg_hover="#e3e8f0",
         bg_pressed="#d4dbe7",
         bg_input="#ffffff",
+        bg_disabled="#eceff5",
         fg_primary="#1a1f2c",
         fg_secondary="#475266",
         fg_muted="#8794a8",
+        fg_disabled="#b6bdc9",
         fg_on_accent="#ffffff",
         border_subtle="#e2e6ed",
         border_strong="#c4cbd6",
@@ -95,13 +99,15 @@ def dark_theme() -> Theme:
         name="dark",
         bg_app="#0f1419",
         bg_surface="#1a212c",
-        bg_surface_alt="#141a23",
-        bg_hover="#232b38",
-        bg_pressed="#2d3645",
-        bg_input="#0f1419",
+        bg_surface_alt="#222a36",
+        bg_hover="#2b3441",
+        bg_pressed="#36414f",
+        bg_input="#13181f",
+        bg_disabled="#1d242e",
         fg_primary="#e6ebf2",
         fg_secondary="#9aa5b8",
         fg_muted="#5c6779",
+        fg_disabled="#454e5c",
         fg_on_accent="#ffffff",
         border_subtle="#2a3240",
         border_strong="#3a4452",

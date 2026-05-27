@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.errors import AppError
+from app.core.events import get_bus
 from app.services import MaintenanceService, use
 from app.ui.widgets import Card, PrimaryButton, SecondaryButton
 
@@ -75,10 +76,11 @@ class ServicePanel(QWidget):
             with use(self._ctx):
                 deleted = self._svc.truncate_domain()
         except AppError as exc:
-            self._append_log(f"❌ Очистка: {exc}")
+            self._append_log(f"Ошибка очистки: {exc}")
             return
         total = sum(deleted.values())
-        self._append_log(f"✓ Очистка завершена. Удалено строк: {total}.")
+        get_bus().emit_data_invalidated("*")
+        self._append_log(f"Очистка завершена. Удалено строк: {total}.")
 
     @Slot()
     def _on_seed(self) -> None:
@@ -86,13 +88,14 @@ class ServicePanel(QWidget):
             with use(self._ctx):
                 report = self._svc.seed_demo()
         except AppError as exc:
-            self._append_log(f"❌ Посев: {exc}")
+            self._append_log(f"Ошибка посева: {exc}")
             return
         if report.already_seeded:
-            self._append_log("⚠ В БД уже есть данные — посев пропущен. Сначала очистите БД.")
+            self._append_log("В БД уже есть данные — посев пропущен. Сначала очистите БД.")
             return
         breakdown = ", ".join(f"{k}={v}" for k, v in report.created.items())
-        self._append_log(f"✓ Демо-данные засеяны: {breakdown}")
+        get_bus().emit_data_invalidated("*")
+        self._append_log(f"Демо-данные засеяны: {breakdown}")
 
     @Slot()
     def _on_export(self) -> None:
@@ -106,10 +109,10 @@ class ServicePanel(QWidget):
             with use(self._ctx):
                 report = self._svc.export_dump(Path(path_str))
         except AppError as exc:
-            self._append_log(f"❌ Экспорт дампа: {exc}")
+            self._append_log(f"Ошибка экспорта дампа: {exc}")
             return
         kib = max(1, report.size_bytes // 1024)
-        self._append_log(f"✓ Дамп сохранён: {report.path} ({kib} КБ)")
+        self._append_log(f"Дамп сохранён: {report.path} ({kib} КБ)")
 
     # ---- private ----
     def _build_ui(self) -> None:

@@ -1,9 +1,11 @@
 """Главное окно: sidebar навигации + контентный стек.
 
-Реальные страницы для разделов «Справочники», «Тренировки», «Походы»
-строятся из дескрипторов в :mod:`app.ui.descriptors`. Разделы «Запросы»,
-«SQL-консоль», «Администрирование» и «Сервисный режим» остаются заглушками
-до соответствующих этапов плана (см. ``docs/plan.md``).
+4 раздела:
+* «Данные» — все CRUD-справочники, тренировки и походы в одном экране,
+  разбитые на смысловые группы (см. ``DATA_GROUPS`` в ``descriptors.py``).
+* «Консоль» — готовые запросы по варианту + произвольный SQL.
+* «Администрирование» — пользователи, роли, журнал входов.
+* «Сервисный режим» — очистка БД, посев демо-данных, экспорт дампа.
 """
 
 from __future__ import annotations
@@ -25,19 +27,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.core.query_history import QueryHistory
-from app.db.engine import get_engine, get_readonly_engine
-from app.services.sql_console import SqlConsoleService
 from app.ui.admin import AdminPage
-from app.ui.descriptors import (
-    REFERENCE_DESCRIPTORS,
-    TRAINING_DESCRIPTORS,
-    TRIP_DESCRIPTORS,
-)
-from app.ui.pages import EntityListPage
-from app.ui.queries.page import QueriesPage
+from app.ui.console_page import ConsolePage
+from app.ui.descriptors import DATA_GROUPS
+from app.ui.pages import DataPage
 from app.ui.service_panel import ServicePanel
-from app.ui.sql_console import SqlConsoleView
 from app.ui.widgets import GhostButton
 
 if TYPE_CHECKING:
@@ -50,7 +44,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class _Section:
-    """Описание раздела sidebar-а: ключ, заголовок, право, фабрика страницы."""
+    """Описание раздела sidebar-а."""
 
     key: str
     title: str
@@ -58,26 +52,12 @@ class _Section:
     page_factory: Callable[[Session, AuthContext], QWidget]
 
 
-def _references_factory(session: Session, ctx: AuthContext) -> QWidget:
-    return EntityListPage(REFERENCE_DESCRIPTORS, session, ctx)
+def _data_factory(session: Session, ctx: AuthContext) -> QWidget:
+    return DataPage(DATA_GROUPS, session, ctx)
 
 
-def _training_factory(session: Session, ctx: AuthContext) -> QWidget:
-    return EntityListPage(TRAINING_DESCRIPTORS, session, ctx)
-
-
-def _trips_factory(session: Session, ctx: AuthContext) -> QWidget:
-    return EntityListPage(TRIP_DESCRIPTORS, session, ctx)
-
-
-def _queries_factory(session: Session, ctx: AuthContext) -> QWidget:
-    return QueriesPage(session, ctx)
-
-
-def _sql_factory(_session: Session, ctx: AuthContext) -> QWidget:
-    service = SqlConsoleService(rw_engine=get_engine(), ro_engine=get_readonly_engine())
-    history = QueryHistory()
-    return SqlConsoleView(service=service, history=history, ctx=ctx)
+def _console_factory(session: Session, ctx: AuthContext) -> QWidget:
+    return ConsolePage(session, ctx)
 
 
 def _admin_factory(session: Session, ctx: AuthContext) -> QWidget:
@@ -89,11 +69,8 @@ def _service_factory(session: Session, ctx: AuthContext) -> QWidget:
 
 
 _SECTIONS: tuple[_Section, ...] = (
-    _Section("references", "Справочники", "tourist.read", _references_factory),
-    _Section("training", "Тренировки", "training_session.read", _training_factory),
-    _Section("trips", "Походы", "trip.read", _trips_factory),
-    _Section("queries", "Запросы по варианту", None, _queries_factory),
-    _Section("sql", "SQL-консоль", "sql.execute", _sql_factory),
+    _Section("data", "Данные", None, _data_factory),
+    _Section("console", "Консоль", None, _console_factory),
     _Section("admin", "Администрирование", "admin.users", _admin_factory),
     _Section("service", "Сервисный режим", "service.testdata", _service_factory),
 )
@@ -108,7 +85,7 @@ class MainWindow(QMainWindow):
 
     # ---- init ----
     def __init__(self, ctx: AuthContext, session: Session) -> None:
-        """Построить окно для уже вошедшего пользователя и заданной сессии."""
+        """Построить окно для вошедшего пользователя и заданной сессии."""
         super().__init__()
         self._ctx = ctx
         self._session = session
@@ -123,13 +100,13 @@ class MainWindow(QMainWindow):
 
     # ---- public api ----
     def set_active_section(self, key: str) -> None:
-        """Программно открыть раздел по его ключу (см. ``_SECTIONS``)."""
+        """Программно открыть раздел по его ключу."""
         btn = self._nav_buttons.get(key)
         if btn is not None:
             btn.click()
 
     def set_theme_label(self, theme_name: str) -> None:
-        """Обновить подпись переключателя темы (``light``/``dark``)."""
+        """Обновить подпись переключателя темы."""
         opposite = "тёмная" if theme_name == "light" else "светлая"
         self._theme_btn.setText(f"Тема: {opposite}")
 

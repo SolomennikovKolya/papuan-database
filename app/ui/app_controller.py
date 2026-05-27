@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QObject, Slot
 
 from app.core.config import get_settings
-from app.core.events import AppBus
+from app.core.events import get_bus
 from app.db.session import new_session
 from app.services.auth import AuthService
 from app.theme import apply_theme, get_theme
@@ -37,7 +37,7 @@ class AppController(QObject):
         """Привязать контроллер к запущенному ``QApplication``."""
         super().__init__()
         self._app = app
-        self._bus = AppBus()
+        self._bus = get_bus()
         self._theme_name = get_settings().app_theme
         self._login = LoginWindow(authenticate=self._authenticate)
         self._main: MainWindow | None = None

@@ -1,7 +1,8 @@
-"""Универсальный CRUD-экран: таблица + поиск + пагинация + действия.
+"""Универсальный CRUD-экран: таблица + поиск + действия.
 
-Один класс закрывает все 16 справочников с одиночным PK; всё, что нужно
-конкретной сущности, лежит в :class:`EntityDescriptor`.
+Один класс закрывает все справочники с одиночным PK; всё, что нужно конкретной
+сущности, лежит в :class:`EntityDescriptor`. Пагинация отсутствует — для
+учебных объёмов данных таблицы прокручиваются естественным образом.
 """
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import Slot
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
@@ -22,13 +23,15 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from sqlalchemy import String, inspect, or_
 
 from app.core.errors import AppError
+from app.core.events import get_bus
 from app.repositories import Sort
 from app.services import EntityService, use
 from app.ui.crud.form_dialog import FormDialog
 from app.ui.crud.table_model import EntityTableModel
-from app.ui.widgets import GhostButton, PrimaryButton, SecondaryButton
+from app.ui.widgets import PrimaryButton, SecondaryButton
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -60,57 +63,53 @@ class CrudView(QWidget):
             session, descriptor.model, descriptor.perm_prefix
         )
 
-        self._page_offset = 0
-        self._total = 0
         self._search_query = ""
-
         self._table_model = EntityTableModel(descriptor.columns)
         self._search_input: QLineEdit
         self._add_btn: PrimaryButton
         self._edit_btn: SecondaryButton
         self._delete_btn: SecondaryButton
-        self._pager_label: QLabel
-        self._prev_btn: GhostButton
-        self._next_btn: GhostButton
         self._error_label: QLabel
+        self._total_label: QLabel
         self._table_view: QTableView
+
+        # Строковые колонки модели (для поиска, если у дескриптора нет search_field).
+        self._search_columns = self._discover_string_columns()
 
         self._build_ui()
         self._wire()
         self._apply_permissions()
+        get_bus().data_invalidated.connect(self._on_data_invalidated)
         self.refresh()
 
     # ---- public api ----
     def refresh(self) -> None:
-        """Перечитать данные из БД и обновить таблицу/пагинатор."""
+        """Перечитать данные из БД и обновить таблицу."""
         try:
             with use(self._ctx):
+                # SQLAlchemy кэширует объекты в identity map — сбрасываем,
+                # чтобы видеть свежие данные после внешних изменений (seed/truncate).
+                self._session.expire_all()
                 page = self._service.list(
                     where=self._build_where(),
                     order_by=[Sort.parse(self._descriptor.default_sort)],
-                    limit=self._descriptor.page_size,
-                    offset=self._page_offset,
                 )
-                # Завершаем read-транзакцию, чтобы будущие записи были видны сразу.
                 self._session.commit()
         except AppError as exc:
             self._session.rollback()
             self._show_error(str(exc))
             self._table_model.set_items([])
-            self._total = 0
-            self._update_pager()
+            self._update_total(0)
             return
 
-        self._total = page.total
         self._table_model.set_items(page.items)
-        self._update_pager()
+        self._update_total(page.total)
         self._clear_error()
 
     # ---- slots ----
     @Slot(str)
     def _on_search_changed(self, text: str) -> None:
         self._search_query = text.strip()
-        self._page_offset = 0
         self.refresh()
 
     @Slot()
@@ -131,6 +130,7 @@ class CrudView(QWidget):
             self._session.rollback()
             self._show_error(str(exc))
             return
+        get_bus().emit_data_invalidated(self._descriptor.model.__tablename__)
         self.refresh()
 
     @Slot()
@@ -155,6 +155,7 @@ class CrudView(QWidget):
             self._session.rollback()
             self._show_error(str(exc))
             return
+        get_bus().emit_data_invalidated(self._descriptor.model.__tablename__)
         self.refresh()
 
     @Slot()
@@ -179,6 +180,7 @@ class CrudView(QWidget):
             self._session.rollback()
             self._show_error(str(exc))
             return
+        get_bus().emit_data_invalidated(self._descriptor.model.__tablename__)
         self.refresh()
 
     @Slot()
@@ -189,19 +191,11 @@ class CrudView(QWidget):
         if self._ctx.has(f"{self._descriptor.perm_prefix}.delete"):
             self._delete_btn.setEnabled(has_selection)
 
-    @Slot()
-    def _on_prev_page(self) -> None:
-        if self._page_offset == 0:
-            return
-        self._page_offset = max(0, self._page_offset - self._descriptor.page_size)
-        self.refresh()
-
-    @Slot()
-    def _on_next_page(self) -> None:
-        if self._page_offset + self._descriptor.page_size >= self._total:
-            return
-        self._page_offset += self._descriptor.page_size
-        self.refresh()
+    @Slot(str)
+    def _on_data_invalidated(self, scope: str) -> None:
+        # `"*"` означает «всё изменилось» (например, seed/truncate).
+        if scope == "*" or scope == self._descriptor.model.__tablename__:
+            self.refresh()
 
     # ---- private ----
     def _build_ui(self) -> None:
@@ -213,16 +207,12 @@ class CrudView(QWidget):
         title.setObjectName("H1")
         outer.addWidget(title)
 
-        # toolbar: search + actions
         toolbar = QHBoxLayout()
         toolbar.setSpacing(8)
 
         self._search_input = QLineEdit()
         self._search_input.setPlaceholderText("Поиск…")
         self._search_input.setClearButtonEnabled(True)
-        if self._descriptor.search_field is None:
-            self._search_input.setEnabled(False)
-            self._search_input.setPlaceholderText("Поиск недоступен")
         toolbar.addWidget(self._search_input, 1)
 
         self._add_btn = PrimaryButton("+ Добавить")
@@ -236,7 +226,6 @@ class CrudView(QWidget):
 
         outer.addLayout(toolbar)
 
-        # table
         self._table_view = QTableView()
         self._table_view.setModel(self._table_model)
         self._table_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -254,25 +243,15 @@ class CrudView(QWidget):
         self._error_label.setWordWrap(True)
         outer.addWidget(self._error_label)
 
-        # pager
-        pager = QHBoxLayout()
-        self._prev_btn = GhostButton("← Назад")
-        self._next_btn = GhostButton("Вперёд →")
-        self._pager_label = QLabel("")
-        self._pager_label.setObjectName("Muted")
-        self._pager_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        pager.addWidget(self._prev_btn)
-        pager.addWidget(self._pager_label, 1)
-        pager.addWidget(self._next_btn)
-        outer.addLayout(pager)
+        self._total_label = QLabel("Всего: 0")
+        self._total_label.setObjectName("Muted")
+        outer.addWidget(self._total_label)
 
     def _wire(self) -> None:
         self._search_input.textChanged.connect(self._on_search_changed)
         self._add_btn.clicked.connect(self._on_add)
         self._edit_btn.clicked.connect(self._on_edit)
         self._delete_btn.clicked.connect(self._on_delete)
-        self._prev_btn.clicked.connect(self._on_prev_page)
-        self._next_btn.clicked.connect(self._on_next_page)
         self._table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
         self._table_view.doubleClicked.connect(self._on_edit)
 
@@ -282,12 +261,24 @@ class CrudView(QWidget):
         self._edit_btn.setVisible(self._ctx.has(f"{prefix}.update"))
         self._delete_btn.setVisible(self._ctx.has(f"{prefix}.delete"))
 
+    def _discover_string_columns(self) -> list:
+        # SQLAlchemy инспекция: все колонки строкового типа модели.
+        mapper = inspect(self._descriptor.model)
+        return [c for c in mapper.columns if isinstance(c.type, String)]
+
     def _build_where(self) -> list:
         clauses: list = []
-        if self._search_query and self._descriptor.search_field:
+        if not self._search_query:
+            return clauses
+        if self._descriptor.search_field:
             column = getattr(self._descriptor.model, self._descriptor.search_field, None)
             if column is not None:
                 clauses.append(column.ilike(f"%{self._search_query}%"))
+                return clauses
+        if self._search_columns:
+            clauses.append(
+                or_(*[c.ilike(f"%{self._search_query}%") for c in self._search_columns])
+            )
         return clauses
 
     def _selected_item(self) -> Base | None:
@@ -296,13 +287,8 @@ class CrudView(QWidget):
             return None
         return self._table_model.item_at(idx.row())
 
-    def _update_pager(self) -> None:
-        size = self._descriptor.page_size
-        start = self._page_offset + 1 if self._total > 0 else 0
-        end = min(self._page_offset + size, self._total)
-        self._pager_label.setText(f"{start}–{end} из {self._total}")
-        self._prev_btn.setEnabled(self._page_offset > 0)
-        self._next_btn.setEnabled(self._page_offset + size < self._total)
+    def _update_total(self, total: int) -> None:
+        self._total_label.setText(f"Всего: {total}")
 
     def _show_error(self, message: str) -> None:
         self._error_label.setText(message)
