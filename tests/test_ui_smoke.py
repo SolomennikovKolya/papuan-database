@@ -103,8 +103,8 @@ class TestMainWindow:
     def test_superadmin_sees_all_sections(self, qtbot: QtBot, session: Session) -> None:
         window = MainWindow(_superadmin_ctx(), session)
         qtbot.addWidget(window)
-        # superadmin минует проверки прав — должен увидеть все разделы.
-        assert len(window._nav_buttons) >= 6
+        # superadmin минует проверки прав — должен увидеть все 4 раздела.
+        assert {"data", "console", "admin", "service"} <= set(window._nav_buttons)
 
     def test_user_without_permissions_hides_admin_section(
         self, qtbot: QtBot, session: Session
@@ -112,9 +112,11 @@ class TestMainWindow:
         ctx = AuthContext(user_id=2, login="weak", is_superadmin=False, permissions=frozenset())
         window = MainWindow(ctx, session)
         qtbot.addWidget(window)
-        # Только разделы без required_permission остаются (queries).
+        # Разделы без required_permission остаются (data, console); admin/service — нет.
         assert "admin" not in window._nav_buttons
-        assert "queries" in window._nav_buttons
+        assert "service" not in window._nav_buttons
+        assert "data" in window._nav_buttons
+        assert "console" in window._nav_buttons
 
     def test_logout_signal_emitted_on_button(self, qtbot: QtBot, session: Session) -> None:
         window = MainWindow(_superadmin_ctx(), session)

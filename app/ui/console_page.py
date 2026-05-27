@@ -39,9 +39,7 @@ class ConsolePage(QWidget):
             denied = QWidget()
             d_layout = QVBoxLayout(denied)
             d_layout.setContentsMargins(32, 32, 32, 32)
-            label = QLabel(
-                "Для выполнения произвольного SQL требуется право `sql.execute`."
-            )
+            label = QLabel("Для выполнения произвольного SQL требуется право `sql.execute`.")
             label.setObjectName("Muted")
             d_layout.addWidget(label)
             d_layout.addStretch(1)

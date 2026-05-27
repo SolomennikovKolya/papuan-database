@@ -15,15 +15,19 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
+from argon2 import PasswordHasher
 from sqlalchemy import select
 
 from app.models import (
+    AppUser,
     Competition,
     CompetitionParticipation,
     Difficulty,
     Group,
     GroupMembership,
+    Permission,
     Person,
+    Role,
     Route,
     RoutePoint,
     Section,
@@ -38,6 +42,42 @@ from app.models import (
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
+
+# Роли и пользователи, которыми посев «полностью определяет» рабочую БД.
+_DOMAIN_ENTITIES = (
+    "section",
+    "section_head",
+    "group",
+    "person",
+    "tourist",
+    "trainer",
+    "training_session",
+    "attendance",
+    "competition",
+    "route",
+    "trip",
+)
+_CRUD_ACTIONS = ("read", "create", "update", "delete")
+_COACH_PERMISSIONS = (
+    "person.read",
+    "tourist.read",
+    "group.read",
+    "training_session.read",
+    "training_session.create",
+    "training_session.update",
+    "attendance.read",
+    "attendance.create",
+    "attendance.update",
+    "trip.read",
+    "competition.read",
+    "route.read",
+)
+# (login, пароль, имя роли)
+_DEMO_USERS = (
+    ("manager", "manager12345", "Менеджер данных"),
+    ("analyst", "analyst12345", "Аналитик"),
+    ("coach", "coach12345", "Тренер"),
+)
 
 
 def is_seeded(session: Session) -> bool:
@@ -388,4 +428,60 @@ def seed(session: Session) -> dict[str, int]:
     counts["competition_participation"] = len(competition_participations)
 
     session.flush()
+    return counts
+
+
+def _role_specs() -> list[tuple[str, str, list[str]]]:
+    """Описания демо-ролей: ``(имя, описание, список кодов прав)``."""
+    crud_all = [f"{e}.{a}" for e in _DOMAIN_ENTITIES for a in _CRUD_ACTIONS]
+    read_all = [f"{e}.read" for e in _DOMAIN_ENTITIES]
+    return [
+        ("Менеджер данных", "Полный доступ ко всем доменным данным (CRUD).", crud_all),
+        ("Аналитик", "Чтение всех данных и произвольный SQL.", [*read_all, "sql.execute"]),
+        ("Тренер", "Ведение тренировок и посещаемости, просмотр групп.", list(_COACH_PERMISSIONS)),
+    ]
+
+
+def seed_access(session: Session) -> dict[str, int]:
+    """Идемпотентно создать демо-роли и пользователей.
+
+    Роли/пользователи создаются только если их ещё нет (по имени/логину),
+    поэтому функцию безопасно вызывать повторно и после очистки доменных данных
+    (``truncate_domain`` системные таблицы не трогает). Это и делает посев
+    «полным описанием» рабочей БД: после него есть и данные, и роли, и учётки.
+    """
+    counts: dict[str, int] = {}
+    permissions = {p.code: p for p in session.execute(select(Permission)).scalars()}
+
+    roles_by_name: dict[str, Role] = {}
+    created_roles = 0
+    for name, description, codes in _role_specs():
+        existing = session.execute(select(Role).where(Role.name == name)).scalar_one_or_none()
+        if existing is not None:
+            roles_by_name[name] = existing
+            continue
+        role = Role(name=name, description=description, is_system=False)
+        role.permissions = [permissions[c] for c in codes if c in permissions]
+        session.add(role)
+        roles_by_name[name] = role
+        created_roles += 1
+    session.flush()
+    if created_roles:
+        counts["role"] = created_roles
+
+    hasher = PasswordHasher()
+    created_users = 0
+    for login, password, role_name in _DEMO_USERS:
+        if session.execute(select(AppUser.id).where(AppUser.login == login)).first() is not None:
+            continue
+        user = AppUser(login=login, password_hash=hasher.hash(password), is_active=True)
+        role = roles_by_name.get(role_name)
+        if role is not None:
+            user.roles.append(role)
+        session.add(user)
+        created_users += 1
+    session.flush()
+    if created_users:
+        counts["app_user"] = created_users
+
     return counts

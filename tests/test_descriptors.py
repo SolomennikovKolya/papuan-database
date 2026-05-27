@@ -4,17 +4,9 @@ from __future__ import annotations
 
 from app.models.base import Base
 from app.ui.crud.descriptor import FieldKind
-from app.ui.descriptors import (
-    REFERENCE_DESCRIPTORS,
-    TRAINING_DESCRIPTORS,
-    TRIP_DESCRIPTORS,
-)
+from app.ui.descriptors import DATA_GROUPS
 
-ALL_DESCRIPTORS = (
-    *REFERENCE_DESCRIPTORS,
-    *TRAINING_DESCRIPTORS,
-    *TRIP_DESCRIPTORS,
-)
+ALL_DESCRIPTORS = tuple(d for _title, descriptors in DATA_GROUPS for d in descriptors)
 
 
 class TestDescriptors:

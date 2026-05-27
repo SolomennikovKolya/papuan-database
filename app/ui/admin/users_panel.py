@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 from sqlalchemy import select
 
 from app.core.errors import AppError
+from app.core.events import get_bus
 from app.models import AppUser, Role
 from app.services import RolesService, UsersService, use
 from app.ui.admin.dialogs import (
@@ -74,9 +75,16 @@ class UsersPanel(QWidget):
         self._error_label: QLabel
         self._build_ui()
         self._wire()
+        get_bus().data_invalidated.connect(self._on_data_invalidated)
         self.refresh()
 
     # ---- public api ----
+    @Slot(str)
+    def _on_data_invalidated(self, scope: str) -> None:
+        # Сид/очистка/внешние правки пользователей — перечитать список.
+        if scope in ("*", "app_user"):
+            self.refresh()
+
     def refresh(self) -> None:
         """Перечитать список пользователей."""
         try:

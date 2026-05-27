@@ -223,6 +223,23 @@ QCheckBox::indicator:disabled {{
     border-color: {border_subtle};
 }}
 
+/* Чекбоксы внутри списков (QListWidget с ItemIsUserCheckable) —
+   отдельный indicator, иначе в светлой теме рамка не видна. */
+QListWidget::indicator, QTreeView::indicator {{
+    width: 16px;
+    height: 16px;
+    border: 1px solid {border_strong};
+    border-radius: 3px;
+    background-color: {bg_input};
+}}
+QListWidget::indicator:hover, QTreeView::indicator:hover {{
+    border-color: {accent};
+}}
+QListWidget::indicator:checked, QTreeView::indicator:checked {{
+    background-color: {accent};
+    border-color: {accent};
+}}
+
 /* ---- Tables / Lists ---- */
 QTableView, QListWidget, QTreeView {{
     background-color: {bg_surface};
@@ -276,6 +293,13 @@ QFrame#Card {{
     background-color: {bg_surface};
     border: 1px solid {border_subtle};
     border-radius: {radius_lg}px;
+}}
+
+/* Область матрицы прав (роли): по умолчанию QScrollArea и её содержимое
+   не темизируются и берут системный (серый) фон — задаём явно. */
+QScrollArea#MatrixScroll, QScrollArea#MatrixScroll > QWidget, QWidget#MatrixContainer {{
+    background-color: {bg_surface};
+    border: none;
 }}
 
 QLabel#FieldLabel {{

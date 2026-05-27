@@ -70,7 +70,6 @@ class CrudView(QWidget):
         self._edit_btn: SecondaryButton
         self._delete_btn: SecondaryButton
         self._error_label: QLabel
-        self._total_label: QLabel
         self._table_view: QTableView
 
         # Строковые колонки модели (для поиска, если у дескриптора нет search_field).
@@ -99,11 +98,9 @@ class CrudView(QWidget):
             self._session.rollback()
             self._show_error(str(exc))
             self._table_model.set_items([])
-            self._update_total(0)
             return
 
         self._table_model.set_items(page.items)
-        self._update_total(page.total)
         self._clear_error()
 
     # ---- slots ----
@@ -194,7 +191,7 @@ class CrudView(QWidget):
     @Slot(str)
     def _on_data_invalidated(self, scope: str) -> None:
         # `"*"` означает «всё изменилось» (например, seed/truncate).
-        if scope == "*" or scope == self._descriptor.model.__tablename__:
+        if scope in ("*", self._descriptor.model.__tablename__):
             self.refresh()
 
     # ---- private ----
@@ -211,8 +208,13 @@ class CrudView(QWidget):
         toolbar.setSpacing(8)
 
         self._search_input = QLineEdit()
-        self._search_input.setPlaceholderText("Поиск…")
         self._search_input.setClearButtonEnabled(True)
+        labels = self._searchable_labels()
+        if labels:
+            self._search_input.setPlaceholderText("Поиск по: " + ", ".join(labels))
+        else:
+            self._search_input.setPlaceholderText("Поиск недоступен")
+            self._search_input.setEnabled(False)
         toolbar.addWidget(self._search_input, 1)
 
         self._add_btn = PrimaryButton("+ Добавить")
@@ -243,10 +245,6 @@ class CrudView(QWidget):
         self._error_label.setWordWrap(True)
         outer.addWidget(self._error_label)
 
-        self._total_label = QLabel("Всего: 0")
-        self._total_label.setObjectName("Muted")
-        outer.addWidget(self._total_label)
-
     def _wire(self) -> None:
         self._search_input.textChanged.connect(self._on_search_changed)
         self._add_btn.clicked.connect(self._on_add)
@@ -266,6 +264,15 @@ class CrudView(QWidget):
         mapper = inspect(self._descriptor.model)
         return [c for c in mapper.columns if isinstance(c.type, String)]
 
+    def _searchable_labels(self) -> list[str]:
+        """Человекочитаемые названия полей, по которым идёт поиск (для подсказки)."""
+        if self._descriptor.search_field:
+            field_names = [self._descriptor.search_field]
+        else:
+            field_names = [c.name for c in self._search_columns]
+        title_by_field = {c.field: c.title for c in self._descriptor.columns}
+        return [title_by_field.get(name, name) for name in field_names]
+
     def _build_where(self) -> list:
         clauses: list = []
         if not self._search_query:
@@ -276,9 +283,7 @@ class CrudView(QWidget):
                 clauses.append(column.ilike(f"%{self._search_query}%"))
                 return clauses
         if self._search_columns:
-            clauses.append(
-                or_(*[c.ilike(f"%{self._search_query}%") for c in self._search_columns])
-            )
+            clauses.append(or_(*[c.ilike(f"%{self._search_query}%") for c in self._search_columns]))
         return clauses
 
     def _selected_item(self) -> Base | None:
@@ -286,9 +291,6 @@ class CrudView(QWidget):
         if not idx.isValid():
             return None
         return self._table_model.item_at(idx.row())
-
-    def _update_total(self, total: int) -> None:
-        self._total_label.setText(f"Всего: {total}")
 
     def _show_error(self, message: str) -> None:
         self._error_label.setText(message)

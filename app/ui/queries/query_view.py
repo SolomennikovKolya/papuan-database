@@ -169,8 +169,12 @@ class QueryView(QWidget):
         self._run_btn = PrimaryButton("Выполнить")
         self._clear_btn = GhostButton("Сбросить фильтры")
         self._export_btn = SecondaryButton("Экспорт CSV")
+        # «Общее число» из варианта — показываем в строке действий, не «под таблицей».
+        self._total_label = QLabel("")
+        self._total_label.setObjectName("Muted")
         toolbar.addWidget(self._run_btn)
         toolbar.addWidget(self._clear_btn)
+        toolbar.addWidget(self._total_label)
         toolbar.addStretch(1)
         toolbar.addWidget(self._export_btn)
         outer.addLayout(toolbar)
@@ -191,10 +195,6 @@ class QueryView(QWidget):
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         header.setHighlightSections(False)
         outer.addWidget(self._table_view, 1)
-
-        self._total_label = QLabel("Всего: 0")
-        self._total_label.setObjectName("Muted")
-        outer.addWidget(self._total_label)
 
     def _wire(self) -> None:
         self._run_btn.clicked.connect(self._on_run)
@@ -227,7 +227,8 @@ class QueryView(QWidget):
         return rows
 
     def _update_total(self) -> None:
-        self._total_label.setText(f"Всего: {self._table_model.row_count()}")
+        count = self._table_model.row_count()
+        self._total_label.setText(f"Общее число: {count}" if count else "")
 
     def _show_error(self, message: str) -> None:
         self._error_label.setStyleSheet("")

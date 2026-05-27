@@ -94,7 +94,7 @@ class DataPage(QWidget):
             header.setFlags(Qt.ItemFlag.NoItemFlags)  # disabled, non-selectable
             self._rows.append(None)
             for d in descriptors:
-                item = QListWidgetItem("  " + d.title, self._list)
+                QListWidgetItem("  " + d.title, self._list)
                 self._rows.append(d)
 
         side_layout.addWidget(self._list, 1)

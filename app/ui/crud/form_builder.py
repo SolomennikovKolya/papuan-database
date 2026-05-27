@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import (
+    QAbstractSpinBox,
     QCheckBox,
     QComboBox,
     QDateEdit,
@@ -48,6 +49,8 @@ def make_input(field: FormField, session: Session) -> QWidget:
             return w
         case FieldKind.INT:
             w = QSpinBox()
+            # Без стрелок ↑↓ — значение вводится с клавиатуры, так аккуратнее в общем стиле.
+            w.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
             w.setRange(
                 int(field.min_value if field.min_value is not None else -(10**9)),
                 int(field.max_value if field.max_value is not None else 10**9),
@@ -57,6 +60,7 @@ def make_input(field: FormField, session: Session) -> QWidget:
             return w
         case FieldKind.DECIMAL:
             w = QDoubleSpinBox()
+            w.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
             w.setDecimals(2)
             w.setRange(
                 float(field.min_value if field.min_value is not None else -1e12),

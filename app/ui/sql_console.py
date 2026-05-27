@@ -195,12 +195,12 @@ class SqlConsoleView(QWidget):
         # mode bar
         mode_bar = QHBoxLayout()
         self._mode_group = QButtonGroup(self)
-        ro_btn = QPushButton("● Read-only")
+        ro_btn = QPushButton("Только чтение")
         ro_btn.setObjectName("SecondaryButton")
         ro_btn.setCheckable(True)
         ro_btn.setChecked(True)
         ro_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        full_btn = QPushButton("⚠ Full (RW)")
+        full_btn = QPushButton("Полный доступ (RW)")
         full_btn.setObjectName("SecondaryButton")
         full_btn.setCheckable(True)
         full_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -227,15 +227,17 @@ class SqlConsoleView(QWidget):
 
         outer.addLayout(mode_bar)
 
-        # editor
+        # editor — фиксированная по высоте область, не растягивается (иначе при
+        # сжатии окна нижние кнопки наезжали на поле ввода).
         self._editor = QPlainTextEdit()
         self._editor.setPlaceholderText("-- введите SQL и нажмите «Выполнить» (Ctrl+Enter)")
         font = QFont("Consolas, 'Cascadia Mono', monospace")
         font.setStyleHint(QFont.StyleHint.Monospace)
         font.setPointSize(11)
         self._editor.setFont(font)
-        self._editor.setMinimumHeight(160)
-        outer.addWidget(self._editor, 1)
+        self._editor.setMinimumHeight(140)
+        self._editor.setMaximumHeight(240)
+        outer.addWidget(self._editor, 0)
 
         # action toolbar
         toolbar = QHBoxLayout()
@@ -277,7 +279,7 @@ class SqlConsoleView(QWidget):
         self._result_stack = QStackedWidget()
         self._result_stack.addWidget(self._result_table)
         self._result_stack.addWidget(self._message_label)
-        outer.addWidget(self._result_stack, 2)
+        outer.addWidget(self._result_stack, 1)
 
         self._update_mode_label()
 
@@ -297,7 +299,7 @@ class SqlConsoleView(QWidget):
         if self._mode == "readonly":
             self._mode_label.setText("режим: только чтение, изменения невозможны")
         else:
-            self._mode_label.setText("⚠ режим: запись разрешена — будьте осторожны")
+            self._mode_label.setText("режим: запись разрешена — будьте осторожны")
 
     def _update_button_states(self) -> None:
         pending = self._service.has_pending

@@ -69,6 +69,25 @@ class TestSeed:
         assert second.already_seeded is True
         assert second.created == {}
 
+    def test_seed_creates_roles_and_users(self, session: Session) -> None:
+        with use(_ADMIN_CTX):
+            MaintenanceService(session).seed_demo()
+        role_names = {r.name for r in session.execute(select(Role)).scalars()}
+        assert {"Менеджер данных", "Аналитик", "Тренер"} <= role_names
+        logins = {u.login for u in session.execute(select(AppUser)).scalars()}
+        assert {"manager", "analyst", "coach"} <= logins
+
+    def test_seed_access_idempotent_after_truncate(self, session: Session) -> None:
+        # Повторный посев после очистки доменных данных не дублирует роли/учётки.
+        with use(_ADMIN_CTX):
+            svc = MaintenanceService(session)
+            svc.seed_demo()
+            svc.truncate_domain()
+            svc.seed_demo()
+        stmt = select(AppUser).where(AppUser.login == "manager")
+        managers = list(session.execute(stmt).scalars())
+        assert len(managers) == 1
+
 
 class TestTruncate:
     def test_truncate_removes_domain_data(self, session: Session, seeded_acl: SeededAcl) -> None:
@@ -89,11 +108,23 @@ class TestTruncate:
         with use(_ADMIN_CTX):
             MaintenanceService(session).truncate_domain()
 
-        # Системные таблицы не пострадали:
+        # Встроенные admin/superadmin, права и журнал не пострадали:
         assert session.execute(select(AppUser).where(AppUser.login == "admin")).first()
         assert session.execute(select(Role).where(Role.name == "superadmin")).first()
         assert session.execute(select(Permission)).first() is not None
         assert session.execute(select(AuditLogin)).first() is not None
+
+    def test_truncate_removes_non_builtin_users_and_roles(
+        self, session: Session, seeded_acl: SeededAcl
+    ) -> None:
+        with use(_ADMIN_CTX):
+            MaintenanceService(session).seed_demo()  # создаёт демо-роли и учётки
+            MaintenanceService(session).truncate_domain()
+        logins = {u.login for u in session.execute(select(AppUser)).scalars()}
+        role_names = {r.name for r in session.execute(select(Role)).scalars()}
+        # Демо-учётки и роли удалены, встроенные остались.
+        assert logins == {"admin"}
+        assert role_names == {"superadmin"}
 
 
 class TestExport:

@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 from sqlalchemy import select
 
 from app.core.errors import AppError
+from app.core.events import get_bus
 from app.models import Permission, Role
 from app.services import RolesService, use
 from app.ui.admin.dialogs import RoleEditDialog
@@ -62,9 +63,17 @@ class RolesPanel(QWidget):
 
         self._build_ui()
         self._wire()
+        get_bus().data_invalidated.connect(self._on_data_invalidated)
         self.reload()
 
     # ---- public api ----
+    @Slot(str)
+    def _on_data_invalidated(self, scope: str) -> None:
+        # Сид/очистка/правки прав в другом месте — перечитать роли и матрицу.
+        if scope in ("*", "role", "permission"):
+            self._current_role = None
+            self.reload()
+
     def reload(self) -> None:
         """Перечитать справочник прав и список ролей с БД."""
         try:
@@ -191,12 +200,9 @@ class RolesPanel(QWidget):
         left.addWidget(self._list, 1)
 
         btns = QHBoxLayout()
-        self._add_btn = PrimaryButton("+")
-        self._add_btn.setToolTip("Создать роль")
-        self._rename_btn = SecondaryButton("✎")
-        self._rename_btn.setToolTip("Переименовать роль")
-        self._delete_btn = SecondaryButton("🗑")
-        self._delete_btn.setToolTip("Удалить роль")
+        self._add_btn = PrimaryButton("Создать")
+        self._rename_btn = SecondaryButton("Переименовать")
+        self._delete_btn = SecondaryButton("Удалить")
         for b in (self._add_btn, self._rename_btn, self._delete_btn):
             btns.addWidget(b)
         btns.addStretch(1)
@@ -212,9 +218,11 @@ class RolesPanel(QWidget):
         right.addWidget(self._role_header)
 
         scroll = QScrollArea()
+        scroll.setObjectName("MatrixScroll")
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         self._matrix_container = QWidget()
+        self._matrix_container.setObjectName("MatrixContainer")
         self._matrix_layout = QVBoxLayout(self._matrix_container)
         self._matrix_layout.setContentsMargins(0, 0, 0, 0)
         self._matrix_layout.setSpacing(8)
@@ -222,15 +230,14 @@ class RolesPanel(QWidget):
         right.addWidget(scroll, 1)
 
         save_row = QHBoxLayout()
+        self._error_label = QLabel("")
+        self._error_label.setObjectName("ErrorLabel")
+        self._error_label.setWordWrap(True)
+        save_row.addWidget(self._error_label)
         save_row.addStretch(1)
         self._save_btn = PrimaryButton("Сохранить права")
         save_row.addWidget(self._save_btn)
         right.addLayout(save_row)
-
-        self._error_label = QLabel("")
-        self._error_label.setObjectName("ErrorLabel")
-        self._error_label.setWordWrap(True)
-        right.addWidget(self._error_label)
 
         root.addLayout(right, 1)
 

@@ -1,4 +1,4 @@
-"""Панель журнала входов (audit_login) с фильтрами и пагинацией."""
+"""Панель журнала входов (audit_login) с фильтрами."""
 
 from __future__ import annotations
 
@@ -19,10 +19,11 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.errors import AppError
+from app.core.events import get_bus
 from app.services import AuditService, use
 from app.ui.crud.descriptor import Column
 from app.ui.crud.table_model import EntityTableModel
-from app.ui.widgets import GhostButton, PrimaryButton
+from app.ui.widgets import PrimaryButton
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -31,7 +32,8 @@ if TYPE_CHECKING:
 
 _log = logging.getLogger(__name__)
 
-_PAGE_SIZE = 100
+# Сколько последних записей показываем (без пагинации — для учебных объёмов хватает).
+_LIMIT = 500
 
 
 _COLUMNS: list[Column] = [
@@ -43,7 +45,7 @@ _COLUMNS: list[Column] = [
         "Успех",
         width=80,
         align="center",
-        formatter=lambda v: "✓" if v else "✗",
+        formatter=lambda v: "успех" if v else "отказ",
     ),
     Column("user_id", "ID пользователя", width=140, align="right"),
     Column("ip_address", "IP"),
@@ -51,7 +53,7 @@ _COLUMNS: list[Column] = [
 
 
 class AuditPanel(QWidget):
-    """Список последних попыток входа + фильтр + пагинация."""
+    """Список последних попыток входа + фильтр по логину/результату."""
 
     # ---- init ----
     def __init__(self, session: Session, ctx: AuthContext, parent: QWidget | None = None) -> None:
@@ -61,23 +63,25 @@ class AuditPanel(QWidget):
         self._ctx = ctx
         self._svc = AuditService(session)
         self._model = EntityTableModel(_COLUMNS)
-        self._offset = 0
-        self._total = 0
         self._login_filter: QLineEdit
         self._success_filter: QComboBox
         self._refresh_btn: PrimaryButton
-        self._prev_btn: GhostButton
-        self._next_btn: GhostButton
-        self._pager_label: QLabel
         self._table: QTableView
         self._error_label: QLabel
         self._build_ui()
         self._wire()
+        get_bus().data_invalidated.connect(self._on_data_invalidated)
         self.refresh()
 
     # ---- public api ----
+    @Slot(str)
+    def _on_data_invalidated(self, scope: str) -> None:
+        # Очистка/сид влияют и на журнал — обновим вид.
+        if scope in ("*", "audit_login"):
+            self.refresh()
+
     def refresh(self) -> None:
-        """Перечитать страницу журнала из БД с учётом текущих фильтров."""
+        """Перечитать журнал из БД с учётом текущих фильтров."""
         login_val = self._login_filter.text().strip() or None
         success_val: bool | None
         choice = self._success_filter.currentData()
@@ -89,43 +93,20 @@ class AuditPanel(QWidget):
             success_val = None
         try:
             with use(self._ctx):
-                page = self._svc.recent(
-                    login=login_val,
-                    success=success_val,
-                    limit=_PAGE_SIZE,
-                    offset=self._offset,
-                )
-                self._total = self._svc.count(login=login_val, success=success_val)
+                self._session.expire_all()
+                page = self._svc.recent(login=login_val, success=success_val, limit=_LIMIT)
                 self._session.commit()
         except AppError as exc:
             self._session.rollback()
             self._error_label.setText(str(exc))
             self._model.set_items([])
-            self._total = 0
-            self._update_pager()
             return
         self._model.set_items(list(page.items))
-        self._update_pager()
         self._error_label.setText("")
 
     # ---- slots ----
     @Slot()
     def _on_filter_changed(self) -> None:
-        self._offset = 0
-        self.refresh()
-
-    @Slot()
-    def _on_prev(self) -> None:
-        if self._offset == 0:
-            return
-        self._offset = max(0, self._offset - _PAGE_SIZE)
-        self.refresh()
-
-    @Slot()
-    def _on_next(self) -> None:
-        if self._offset + _PAGE_SIZE >= self._total:
-            return
-        self._offset += _PAGE_SIZE
         self.refresh()
 
     # ---- private ----
@@ -175,29 +156,10 @@ class AuditPanel(QWidget):
         self._error_label.setObjectName("ErrorLabel")
         layout.addWidget(self._error_label)
 
-        pager = QHBoxLayout()
-        self._prev_btn = GhostButton("← Назад")
-        self._next_btn = GhostButton("Вперёд →")
-        self._pager_label = QLabel("")
-        self._pager_label.setObjectName("Muted")
-        pager.addWidget(self._prev_btn)
-        pager.addWidget(self._pager_label, 1)
-        pager.addWidget(self._next_btn)
-        layout.addLayout(pager)
-
     def _wire(self) -> None:
         self._refresh_btn.clicked.connect(self.refresh)
         self._login_filter.returnPressed.connect(self._on_filter_changed)
         self._success_filter.currentIndexChanged.connect(self._on_filter_changed)
-        self._prev_btn.clicked.connect(self._on_prev)
-        self._next_btn.clicked.connect(self._on_next)
-
-    def _update_pager(self) -> None:
-        start = self._offset + 1 if self._total > 0 else 0
-        end = min(self._offset + _PAGE_SIZE, self._total)
-        self._pager_label.setText(f"{start}–{end} из {self._total}")
-        self._prev_btn.setEnabled(self._offset > 0)
-        self._next_btn.setEnabled(self._offset + _PAGE_SIZE < self._total)
 
 
 __all__ = ["AuditPanel"]

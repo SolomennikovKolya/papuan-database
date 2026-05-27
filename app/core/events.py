@@ -39,7 +39,7 @@ _bus: AppBus | None = None
 
 def get_bus() -> AppBus:
     """Вернуть единственный на процесс экземпляр :class:`AppBus`."""
-    global _bus
+    global _bus  # noqa: PLW0603 — ленивый синглтон шины на процесс
     if _bus is None:
         _bus = AppBus()
     return _bus
